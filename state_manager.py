@@ -1,13 +1,23 @@
-from distance_control import DistanceControl
-from robot_control import RobotControl
-from color_control import ColorControl
+from pybricks.parameters import Color
 
 class StateManager():
-    def __init__(self):
+    def __init__(self, brick, distance=0, color=None):
+        brick.light.on(Color.WHITE)
+        self.ev3 = brick
         self.state = None
-        self.distance_control = DistanceControl()
-        self.robot_control = RobotControl()
-        self.color_control = ColorControl()
+        self.distance = distance
+        self.color = color
 
-    def update_state(self):
-        pass
+    def update_state(self, distance, color):
+        self.distance = distance
+        self.color = color
+    
+    def update_distance(self, distance):
+        self.distance = distance
+    
+    def update_color(self, color):
+        self.color = color
+
+    def get_state(self)->dict:
+        '''return the current state as a dictionary'''
+        return {'distance': self.distance, 'color': self.color}
