@@ -14,25 +14,16 @@ class RobotControl:
         self.right_motor.run(speed)
     
     def rotate(self, angle, speed):
-        # self.left_motor.run_angle(speed, angle)
-        # self.right_motor.run_angle(speed, angle)
-        # Si l'angle est positif, tourner dans le sens anti-horaire (à gauche)
         if angle > 0:
             self.left_motor.run_angle(speed, angle)
-            # self.right_motor.run_angle(-speed, angle)  # Tourner dans le sens opposé
-        # Si l'angle est négatif, tourner dans le sens horaire (à droite)
         elif angle < 0:
-            # self.left_motor.run_angle(-speed, abs(angle))  # Tourner dans le sens opposé
             self.right_motor.run_angle(speed, abs(angle))
     
     def rotate_backward(self, angle, speed):
         if angle > 0:
             self.right_motor.run_angle(-speed, angle)
-            # self.right_motor.run_angle(-speed, angle)  # Tourner dans le sens opposé
-        # Si l'angle est négatif, tourner dans le sens horaire (à droite)
         elif angle < 0:
-            self.left_motor.run_angle(-speed, abs(angle))  # Tourner dans le sens opposé
-            # self.right_motor.run_angle(speed, abs(angle))
+            self.left_motor.run_angle(-speed, abs(angle))
 
     def stop(self):
         self.left_motor.stop()

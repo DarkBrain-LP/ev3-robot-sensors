@@ -1,15 +1,19 @@
 
 class LCDControl:
-    def __init__(self, brick):
-        self.lcd = brick.screen
+    def __init__(self, brick=None):
+        self.lcd = brick.screen if brick is not None else None
 
     def display(self, message):
-        self.lcd.print(message)
+        if self.lcd is not None:
+            self.lcd.print(message)
     
     def write(self, message):
-        self.lcd.print(message)
+        if self.lcd is not None:
+            self.lcd.print(message)
     
     def status(self, message:dict):
         # iterate through the dictionary and print the key value pairs
-        for key, value in message.items():
-            self.display(f'{key}: {value}\n')
+        if self.lcd != None:
+            for key, value in message.items():
+                self.display('%s : %s' % (key, value))
+        
