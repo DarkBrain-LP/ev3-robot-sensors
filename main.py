@@ -13,7 +13,7 @@ from color_control import ColorControl
 from state_manager import StateManager
 from logger import Logger
 from sound_light_control import SoundLightControl
-from drive_manager import DriveManager
+from drive_manager import DriveManager, KP
 
 from pybricks.ev3devices import Motor
 from pybricks.parameters import Port
@@ -25,7 +25,7 @@ import time
 # This program requires LEGO EV3 MicroPython v2.0 or higher.
 # Click "Open user guide" on the EV3 extension tab for more information.
 
-DEFAULT_SPEED = 75
+DEFAULT_SPEED = 100
 DEFAULT_TURN_RATE = 0
 
 # Create your objects here.
@@ -58,8 +58,13 @@ future = now + 10
 beep_num = 0
 color = Color.BLACK
 distance = 0
+angle = 0
+LEFT_ANGLE = 10
+RIGHT_ANGLE = -10
 # control.rotate(-360*2, 500)
-
+# ======================KP======================
+errors = []
+current_angle = 0
 #TP2
 
 while True :#time.time() < future:
@@ -102,14 +107,25 @@ while True :#time.time() < future:
 
     ### TP2
     lcd_control.write(color_control.reflect())
-    angle = 20
+    current_angle = abs(KP*color_control.mesure_light())
+    # now = time.time()
+    # if now > future:
+    #     if angle == 0:
+    #         angle = 45
+    #     else:
+    #         angle = 0
+    #     future = now + 10
+    #     drive_base.drive(DEFAULT_SPEED, angle)
     
-    drive_base.drive(DEFAULT_SPEED, angle)
+    if color_control.is_following_black_line():
+        drive_base.drive(DEFAULT_SPEED, current_angle) #LEFT_ANGLE
+    elif color_control.is_following_white_line():
+        drive_base.drive(DEFAULT_SPEED, -current_angle) #RIGHT_ANGLE
+    # else:
+    #     drive_base.drive(DEFAULT_SPEED, 0)
 
-    # print('angle=%s'%angle)
-    # drive_base.stop()
-    wait(100)
-    drive_base.drive(DEFAULT_SPEED, -angle)
+    # wait(100)
+    # drive_base.drive(DEFAULT_SPEED, -angle)
     # drive_base.stop()
     
     # mesured_color = color_control.mesure_error()
@@ -128,7 +144,7 @@ while True :#time.time() < future:
     # else:
     #     drive_base.drive(DEFAULT_SPEED, angle)
     
-    wait(100)
+    # wait(100)
     
 
 

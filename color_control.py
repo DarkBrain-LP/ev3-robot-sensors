@@ -27,11 +27,13 @@ class ColorControl:
     def is_following_black_line(self):
         # return is_color(Color.WHITE)
         # return self.reflect() - self.error >= 0
-        return 0 < self.reflect() < 25
+        # return 0 < self.reflect() < 25
+        return self.mesure_light() < 0
 
     def is_following_white_line(self):
         # return self.reflect() + self.error >= 100
-        return 60 < self.reflect() < 70
+        # return 60 < self.reflect() < 70
+        return self.mesure_light() > 0
         
     def mesure_light(self):
         return self.reflect()-self.error
