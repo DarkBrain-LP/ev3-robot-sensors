@@ -13,7 +13,7 @@ from color_control import ColorControl
 from state_manager import StateManager
 from logger import Logger
 from sound_light_control import SoundLightControl
-from drive_manager import DriveManager, KP
+from drive_manager import DriveManager, KP, KI, KD, ERROR_LIMIT
 
 from pybricks.ev3devices import Motor
 from pybricks.parameters import Port
@@ -106,8 +106,13 @@ while True :#time.time() < future:
     '''
 
     ### TP2
-    lcd_control.write(color_control.reflect())
-    current_angle = abs(KP*color_control.mesure_light())
+    lcd_control.write('%s : %s' % (color_control.mesure_error(), drive_base.angle()))
+    errors.append(color_control.mesure_error())
+    while KI*sum(errors) >= ERROR_LIMIT:
+        errors = errors[100:]
+        lcd_control.write('error limit reached')
+
+    current_angle = (KP*color_control.mesure_light()) + KI*sum(errors) + KD*(color_control.mesure_error() - errors[-1])
     # now = time.time()
     # if now > future:
     #     if angle == 0:
@@ -117,10 +122,9 @@ while True :#time.time() < future:
     #     future = now + 10
     #     drive_base.drive(DEFAULT_SPEED, angle)
     
-    if color_control.is_following_black_line():
-        drive_base.drive(DEFAULT_SPEED, current_angle) #LEFT_ANGLE
-    elif color_control.is_following_white_line():
-        drive_base.drive(DEFAULT_SPEED, -current_angle) #RIGHT_ANGLE
+    # if color_control.is_fo t_angle) #RIGHT_ANGLE
+    
+    drive_base.drive(DEFAULT_SPEED, current_angle)
     # else:
     #     drive_base.drive(DEFAULT_SPEED, 0)
 

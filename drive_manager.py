@@ -1,7 +1,10 @@
 from pybricks.robotics import DriveBase
 DEFAULT_SPEED = 75
 DEFAULT_TURN_RATE = 0
-KP = 1.5
+KP = 1.7
+KI = 0.15
+KD = 0.1
+ERROR_LIMIT = 20
 LEFT_ANGLE = 10
 RIGHT_ANGLE = -10
 
@@ -9,7 +12,7 @@ color_control = None
 drive_base = None
 class DriveManager:
     def __init__(self, left_motor, right_motor, wheel_diameter=56, axle_track=112, color_control=None):
-        self.drivebase = DriveBase(left_motor, right_motor, wheel_diameter=56, axle_track=112)
+        self.drivebase = DriveBase(l+-eft_motor, right_motor, wheel_diameter=56, axle_track=112)
         self.color_control = color_control
     
     def drive(self, speed=DEFAULT_SPEED, turn_rate=DEFAULT_TURN_RATE):
