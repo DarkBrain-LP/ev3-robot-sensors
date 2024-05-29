@@ -14,18 +14,21 @@ from state_manager import StateManager
 from logger import Logger
 from sound_light_control import SoundLightControl
 from drive_manager import DriveManager, KP, KI, KD, ERROR_LIMIT
+from kalman import Kalman
 
 from pybricks.ev3devices import Motor
 from pybricks.parameters import Port
 from pybricks.parameters import Color
 from pybricks.tools import wait
 from pybricks.robotics import DriveBase
+from pybricks.ev3devices import GyroSensor
 import time
+import math
 
 # This program requires LEGO EV3 MicroPython v2.0 or higher.
 # Click "Open user guide" on the EV3 extension tab for more information.
 
-DEFAULT_SPEED = 100
+DEFAULT_SPEED = 120 #120 #100
 DEFAULT_TURN_RATE = 0
 
 # Create your objects here.
@@ -42,14 +45,26 @@ color_control = ColorControl()
 lcd_control = LCDControl(brick=ev3)
 state_manager = StateManager(brick=ev3)
 logger = Logger('distance', 'color', 'timestamp')
+pid_logger1 = Logger('x', 'y', 'distance', 'model_angle', 'state_angle', name='_1pid_log')
+kalman_logger = Logger('x', 'y', 'distance', 'angle', name='_1klm_kalman_log')
+# pid_logger1 = Logger('x', 'y', 'distance', name='_pid_logs1')
+# pid_logger2 = Logger('x', 'y', 'distance', 'timestamp', name='_pid_logs2')
+# pid_logger3 = Logger('x', 'y', 'distance', 'timestamp', name='_pid_logs3')
+gyroscope_logger = Logger('x', 'y', 'distance', 'angle', name='_1klm_gyro_logs')
+
 sound_light = SoundLightControl(ev3)
+gyro_sensor = GyroSensor(Port.S4)
+
+WHEEL_DIAMETER = 56 #59  #56 diamètre des roues en mm
+AXLE_TRACK = 118 #119 #118 #117 #112 distance entre les roues en mm
+'''Entre 17 et 18'''
 
 left_motor = control.left_motor
 right_motor = control.right_motor
 # drive_base = DriveManager(left_motor, right_motor)
-drive_base = DriveBase(left_motor, right_motor, wheel_diameter=56, axle_track=112)
+drive_base = DriveBase(left_motor, right_motor, wheel_diameter=WHEEL_DIAMETER, axle_track=AXLE_TRACK)
 
-print(distance_control.distance())
+# print(distance_control.distance())
 # control.forward(1000)
 
 # forward for 1 minute
@@ -58,102 +73,119 @@ future = now + 10
 beep_num = 0
 color = Color.BLACK
 distance = 0
-angle = 0
-LEFT_ANGLE = 10
-RIGHT_ANGLE = -10
 # control.rotate(-360*2, 500)
 # ======================KP======================
 errors = []
 current_angle = 0
 #TP2
 
+# Facteur de correction du contrôleur PID en fonction de la pause de 0.1 seconde
+CORRECTION_FACTOR = 1.5
+
+# Calcul des paramètres du contrôleur PID corrigés
+KP_corrected = KP * CORRECTION_FACTOR
+KI_corrected = KI * CORRECTION_FACTOR
+KD_corrected = KD * CORRECTION_FACTOR
+
+
+# Variables pour l'odométrie
+x_robot = 0
+y_robot = 0
+theta_robot = 0
+
+x_state_coordinates = [0]
+y_state_coordinates = [0]
+
+x_kalman_coordinates = [0]
+y_kalman_coordinates = [0]
+
+x_gyroscope_coordinates = [0]
+y_gyroscope_coordinates = [0]
+
+last_time = time.time() #+ 0.2 # +0.2 pour que la première itération soit de 0.1
+drive_base.reset()
+last_distance = 0
+
+kalman_filter = Kalman()
+kalman_angle = 0
+
 while True :#time.time() < future:
-    '''
-    TP1
-    
-    now = time.time()
-    if now < future:
-        # display the current status
-        lcd_control.status(state_manager.get_state())
-        future = now + 10
-        logger.log(*state_manager.get_state().values()) #, now
+    # make the robot move for 1 meter and stop
 
-    color = color_control.color()
-    state_manager.update_color(color)
-    # lcd_control.write(color)
-    if color == Color.RED:
-        wait(1000)
-        control.beep(ev3)
-        control.beep(ev3)
-        control.beep(ev3)
-
-    if(distance_control.presence()):
-        distance = distance_control.distance()
-        state_manager.update_distance(distance)
-        control.stop()
-        control.beep(ev3)
-        beep_num += 1
-        wait(1000)
-
-        if distance_control.presence():
-            control.rotate_backward(360, 100)
-            if distance_control.presence():
-                control.rotate_backward(-360, 100)
-        continue
-
-    control.forward(500)
-    sound_light.blink()
-    '''
 
     ### TP2
-    lcd_control.write('%s : %s' % (color_control.mesure_error(), drive_base.angle()))
+    # lcd_control.write('%s : %s' % (color_control.mesure_error(), drive_base.angle()))
+    
     errors.append(color_control.mesure_error())
     while KI*sum(errors) >= ERROR_LIMIT:
         errors = errors[100:]
         lcd_control.write('error limit reached')
 
-    current_angle = (KP*color_control.mesure_light()) + KI*sum(errors) + KD*(color_control.mesure_error() - errors[-1])
-    # now = time.time()
-    # if now > future:
-    #     if angle == 0:
-    #         angle = 45
-    #     else:
-    #         angle = 0
-    #     future = now + 10
-    #     drive_base.drive(DEFAULT_SPEED, angle)
-    
-    # if color_control.is_fo t_angle) #RIGHT_ANGLE
-    
+    if len(errors) > 0:
+        current_angle = (KP*color_control.mesure_light()) + KI*sum(errors) + KD*(color_control.mesure_error() - errors[-1])
+    else:
+        current_angle = (KP_corrected*color_control.mesure_light()) + KI_corrected*sum(errors)
+    # current_angle = 0
+    # drive_base.drive(DEFAULT_SPEED, current_angle)
     drive_base.drive(DEFAULT_SPEED, current_angle)
-    # else:
-    #     drive_base.drive(DEFAULT_SPEED, 0)
-
-    # wait(100)
-    # drive_base.drive(DEFAULT_SPEED, -angle)
-    # drive_base.stop()
     
-    # mesured_color = color_control.mesure_error()
-    # if mesured_color < 0: # black
-    #     pass
-    #     #turn left
-    # else:
-    #     pass
-    #     #turn right
-    # if not color_control.is_intersected():
-    #     if color_control.is_following_black_line():
-    #         drive_base.drive(DEFAULT_SPEED, -angle)
-    #         # drive_base.drive(turn_rate=45)
-    #     elif color_control.is_following_white_line():
-    #         drive_base.drive(DEFAULT_SPEED, angle)
-    # else:
-    #     drive_base.drive(DEFAULT_SPEED, angle)
-    
-    # wait(100)
-    
+    gyro_angle = math.radians(gyro_sensor.angle())
+    model_angle = math.radians(current_angle)
+    kalman_angle = kalman_filter.filter(gyro_angle, model_angle)
+    print('Gyro angle:', gyro_angle, 'Model angle: ', model_angle, 'Kalman angle: ', kalman_angle)
 
+    # drive_base.drive(DEFAULT_SPEED, math.degrees(kalman_angle))
+    # logger.log(errors[-1])
 
+    if(time.time() - last_time >= 0.1):
         
-# control.rotate(90, 100)
-# control.stop()
+        distance, speed, angle, rotational_speed = drive_base.state()
+        # print(distance, angle)
+        # print(distance, x_state_coordinates[-1], y_state_coordinates[-1])
+        lcd_control.write('%s' % (distance))
+        # if the distance reacheed 1 meter, stop the robot
+        # if distance >= 1000:
+        #     drive_base.stop()
+        #     break
+
+        # Convert angle to radians
+        angle = math.radians(angle)
+        # Calculate current x and y coordinates
+        # current_x = x_state_coordinates[-1] + math.cos(angle) * (distance - last_distance) #- x_state_coordinates[-1]
+        # current_y = y_state_coordinates[-1] + math.sin(angle) * (distance - last_distance) #- y_state_coordinates[-1]
+        current_x = x_state_coordinates[-1] + math.cos(angle) * (distance - last_distance) #- x_state_coordinates[-1]
+        current_y = y_state_coordinates[-1] + math.sin(angle) * (distance - last_distance) #- y_state_coordinates[-1]
+        ''' if I comment the two lines above, la courbe prend l'allure d'un cercle. If not, elle prend l'allure d'une parabole'''
+        x_state_coordinates.append(current_x)
+        y_state_coordinates.append(current_y)
+
+        logs = [current_x, current_y, distance, model_angle, angle]
+        pid_logger1.log(*logs)
+
+
+
+        x_gyro = x_gyroscope_coordinates[-1] + math.cos(gyro_angle) * (distance - last_distance)
+        y_gyro = y_gyroscope_coordinates[-1] + math.sin(gyro_angle) * (distance - last_distance)
+        x_gyroscope_coordinates.append(x_gyro)
+        y_gyroscope_coordinates.append(y_gyro)
+
+        gy_logs = [x_gyro, y_gyro, distance, gyro_angle]
+        gyroscope_logger.log(*gy_logs)
+
+        # Kalman filter
+        x_kalman = x_kalman_coordinates[-1] + math.cos(kalman_angle) * (distance - last_distance)
+        y_kalman = y_kalman_coordinates[-1] + math.sin(kalman_angle) * (distance - last_distance)
+        x_kalman_coordinates.append(x_kalman)
+        y_kalman_coordinates.append(y_kalman)
+        klm_logs = [x_kalman, y_kalman, distance, kalman_angle]
+        kalman_logger.log(*klm_logs)
+
+        last_distance = distance
+        last_time = time.time()
+
+
+    # wait(100)
+    
+
 control.beep(ev3)
 # control.stop()
