@@ -28,7 +28,7 @@ import math
 # This program requires LEGO EV3 MicroPython v2.0 or higher.
 # Click "Open user guide" on the EV3 extension tab for more information.
 
-DEFAULT_SPEED = 120 #120 #100
+DEFAULT_SPEED = 100 #120 #120 #100
 DEFAULT_TURN_RATE = 0
 
 # Create your objects here.
@@ -55,7 +55,9 @@ gyroscope_logger = Logger('x', 'y', 'distance', 'angle', name='_1klm_gyro_logs')
 sound_light = SoundLightControl(ev3)
 gyro_sensor = GyroSensor(Port.S4)
 
-WHEEL_DIAMETER = 56 #59  #56 diamètre des roues en mm
+# WHEEL_DIAMETER = 56 #59  #56 diamètre des roues en mm
+# AXLE_TRACK = 118 #119 #118 #117 #112 distance entre les roues en mm
+WHEEL_DIAMETER = 58 #59  #56 diamètre des roues en mm
 AXLE_TRACK = 118 #119 #118 #117 #112 distance entre les roues en mm
 '''Entre 17 et 18'''
 
@@ -109,6 +111,14 @@ last_distance = 0
 kalman_filter = Kalman()
 kalman_angle = 0
 
+partie_A = [(586, -51), (-11, 13)]
+# partie_B = [(-690, 1925), (-1008, 1700)]
+partie_B = [(-110, -1990), (390, -2045)]
+# partie_Stockage = [(295, 750), (405, 981)]
+partie_Stockage = [(-10, -830), (30, -1200)]
+# partie_Sortie = [(200, 951), (245, 1075)]
+partie_Sortie = [(555, -800), (400, 1300)]
+
 while True :#time.time() < future:
     # make the robot move for 1 meter and stop
 
@@ -119,7 +129,7 @@ while True :#time.time() < future:
     errors.append(color_control.mesure_error())
     while KI*sum(errors) >= ERROR_LIMIT:
         errors = errors[100:]
-        lcd_control.write('error limit reached')
+        # lcd_control.write('error limit reached')
 
     if len(errors) > 0:
         current_angle = (KP*color_control.mesure_light()) + KI*sum(errors) + KD*(color_control.mesure_error() - errors[-1])
@@ -132,7 +142,7 @@ while True :#time.time() < future:
     gyro_angle = math.radians(gyro_sensor.angle())
     model_angle = math.radians(current_angle)
     kalman_angle = kalman_filter.filter(gyro_angle, model_angle)
-    print('Gyro angle:', gyro_angle, 'Model angle: ', model_angle, 'Kalman angle: ', kalman_angle)
+    # # print('Gyro angle:', gyro_angle, 'Model angle: ', model_angle, 'Kalman angle: ', kalman_angle)
 
     # drive_base.drive(DEFAULT_SPEED, math.degrees(kalman_angle))
     # logger.log(errors[-1])
@@ -140,22 +150,14 @@ while True :#time.time() < future:
     if(time.time() - last_time >= 0.1):
         
         distance, speed, angle, rotational_speed = drive_base.state()
-        # print(distance, angle)
-        # print(distance, x_state_coordinates[-1], y_state_coordinates[-1])
-        lcd_control.write('%s' % (distance))
-        # if the distance reacheed 1 meter, stop the robot
-        # if distance >= 1000:
-        #     drive_base.stop()
-        #     break
+        # lcd_control.write('%s' % (distance))
 
         # Convert angle to radians
         angle = math.radians(angle)
         # Calculate current x and y coordinates
-        # current_x = x_state_coordinates[-1] + math.cos(angle) * (distance - last_distance) #- x_state_coordinates[-1]
-        # current_y = y_state_coordinates[-1] + math.sin(angle) * (distance - last_distance) #- y_state_coordinates[-1]
-        current_x = x_state_coordinates[-1] + math.cos(angle) * (distance - last_distance) #- x_state_coordinates[-1]
-        current_y = y_state_coordinates[-1] + math.sin(angle) * (distance - last_distance) #- y_state_coordinates[-1]
-        ''' if I comment the two lines above, la courbe prend l'allure d'un cercle. If not, elle prend l'allure d'une parabole'''
+        current_x = x_state_coordinates[-1] + math.cos(angle) * (distance - last_distance)
+        current_y = y_state_coordinates[-1] + math.sin(angle) * (distance - last_distance)
+
         x_state_coordinates.append(current_x)
         y_state_coordinates.append(current_y)
 
@@ -179,6 +181,43 @@ while True :#time.time() < future:
         y_kalman_coordinates.append(y_kalman)
         klm_logs = [x_kalman, y_kalman, distance, kalman_angle]
         kalman_logger.log(*klm_logs)
+        current_x = x_kalman
+        current_y = y_kalman
+        # print('X: ', current_x, 'Y: ', current_y)
+        # X:  625.0069891511401 Y:  -112.0608104017312
+        if current_x >= partie_Stockage[0][0] - 100 and current_x <= partie_Stockage[0][0] + 100 and current_y >= partie_Stockage[0][1] - 100 and current_y <= partie_Stockage[0][1] + 100:
+            lcd_control.write('Robot dans la zone de stockage de la zone A')
+            print('Robot dans la zone de stockage de la zone A')
+        # zone de stockage de la zone B (gauche)
+        if current_x >= partie_Stockage[1][0] - 100 and current_x <= partie_Stockage[1][0] + 100 and current_y >= partie_Stockage[1][1] - 100 and current_y <= partie_Stockage[1][1] + 100:
+            lcd_control.write('Robot dans la zone de stockage de la zone B')
+            print('Robot dans la zone de stockage de la zone B')
+        # zone de sortie de la zone A (droite)
+        if current_x >= partie_Sortie[0][0] - 100 and current_x <= partie_Sortie[0][0] + 100 and current_y >= partie_Sortie[0][1] - 100 and current_y <= partie_Sortie[0][1] + 100:
+            lcd_control.write('Robot dans la zone de sortie de la zone A')
+            print('Robot dans la zone de sortie de la zone A')
+        # zone de sortie de la zone B (gauche)
+        if current_x >= partie_Sortie[1][0] - 100 and current_x <= partie_Sortie[1][0] + 100 and current_y >= partie_Sortie[1][1] - 100 and current_y <= partie_Sortie[1][1] + 100:
+            lcd_control.write('Robot dans la zone de sortie de la zone B')
+            print('Robot dans la zone de sortie de la zone B')
+
+        # voie A
+        if current_x >= partie_A[0][0] - 100 and current_x <= partie_A[0][0] + 100 and current_y >= partie_A[0][1] - 100 and current_y <= partie_A[0][1] + 100:
+            lcd_control.write('Robot Rentre dans la voie A')
+            print('Robot Rentre dans la voie A')
+        # sortie de la voie A
+        if current_x >= partie_A[1][0] - 100 and current_x <= partie_A[1][0] + 100 and current_y >= partie_A[1][1] - 100 and current_y <= partie_A[1][1] + 100:
+            lcd_control.write('Robot Sort de la voie A')
+            print('Robot Sort de la voie A')
+        # voie B
+        if current_x >= partie_B[0][0] - 100 and current_x <= partie_B[0][0] + 100 and current_y >= partie_B[0][1] - 100 and current_y <= partie_B[0][1] + 100:
+            lcd_control.write('Robot Rentre dans la voie B')
+            print('Robot Rentre dans la voie B')
+        # sortie de la voie B
+        if current_x >= partie_B[1][0] - 100 and current_x <= partie_B[1][0] + 100 and current_y >= partie_B[1][1] - 100 and current_y <= partie_B[1][1] + 100:
+            lcd_control.write('Robot Sort de la voie B')
+            print('Robot Sort de la voie B')
+
 
         last_distance = distance
         last_time = time.time()

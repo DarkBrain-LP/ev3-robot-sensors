@@ -28,9 +28,18 @@ from pybricks.robotics import DriveBase
 # KI = 0.15
 # KD = 0.01
 
-KP = 1.1 #1.1 #0.8 #1.1 #1.3
-KI = 0.15
-KD = 0.1
+
+# KP=2
+# KI = 0.1
+# KD = 0.005
+
+# KP = 1.2 #1.1 #1.1 #0.8 #1.1 #1.3
+# KI = 0.15
+# KD = 0.1
+
+KP = 0.8
+KI = 0.2
+KD = 0.7
 
 DEFAULT_SPEED = 100
 DEFAULT_TURN_RATE = 0
@@ -41,7 +50,7 @@ RIGHT_ANGLE = -20
 
 class DriveManager:
     def __init__(self, left_motor, right_motor, wheel_diameter=56, axle_track=112, color_control=None):
-        self.drivebase = DriveBase(left_motor, right_motor, wheel_diameter=56, axle_track=112)
+        self.drivebase = DriveBase(left_motor, right_motor, wheel_diameter=56, axle_track=118) # wheel_diameter=56, axle_track=112
         self.color_control = color_control
     
     def drive(self, speed=DEFAULT_SPEED, turn_rate=DEFAULT_TURN_RATE):

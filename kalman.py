@@ -9,7 +9,7 @@ class Kalman():
         self.Un = 0 # pid command
         self.Rn = math.radians(10) # process noise
         self.Wn = self.Rn
-        self.Qn = self.Rn**2
+        self.Qn = 5 #self.Rn**2
         self.Zn = 0 # gyro mesurement
 
         self.Xnm = 0 #self.X0 + self.B*self.Un + self.Wn # estimated position
@@ -22,6 +22,7 @@ class Kalman():
         self.time = 0
         self.Xn = 0
         self.Pn = 1.5
+        self.A = 1
 
     def filter(self, mesured_angle, model_angle):
         self.Un = model_angle
@@ -29,7 +30,11 @@ class Kalman():
 
         self.Xnm = self.Xnm + self.B*self.Un + self.Wn # estimated position
         self.Pnm = self.Pnm + self.Qn
+        self.Pnm = self.A * self.Pnm * self.A + self.Qn
+
+        
         self.Kn = self.Pnm / (self.Pnm + self.Rn)
+        # self.Kn = 1.5 / (1.5 + self.Rn)
         self.Yn = self.Zn - self.Xnm
         self.Xnm = self.Xnm + self.Kn*self.Yn
         self.Pnm = (1-self.Kn) * self.Pnm
